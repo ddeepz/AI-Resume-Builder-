@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,6 +14,9 @@ import {
   GraduationCap,
   FileCheck,
   LayoutGrid,
+  Pencil,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { useResumeStore } from "@/lib/resume-store";
 import { useToast } from "./toasts";
@@ -25,6 +28,8 @@ import {
   type TemplateConfig,
 } from "@/lib/templates";
 import { TemplateMiniature, TemplateRenderer } from "./template-renderer";
+import { EditableResumeRenderer, applyEditPath } from "./editable-resume-renderer";
+import { DEFAULT_CUSTOMIZATION, type ResumeCustomization } from "@/lib/customization";
 import ScrollReveal from "./scroll-reveal";
 import type { ResumeData } from "@/lib/resume-store";
 
@@ -36,6 +41,31 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   student: GraduationCap,
   "ats-friendly": FileCheck,
 };
+
+// Builds editor customization (fonts + colors) from a template config so the
+// in-modal editable preview visually matches the selected template.
+function customizationFromTemplate(template: TemplateConfig): ResumeCustomization {
+  const isSerif = template.fontHeading.includes("Georgia");
+  return {
+    fonts: {
+      ...DEFAULT_CUSTOMIZATION.fonts,
+      headingFamily: isSerif ? "georgia" : "roboto",
+      bodyFamily: isSerif ? "georgia" : "roboto",
+    },
+    colors: {
+      name: template.textColor,
+      mainHeadings: template.textColor,
+      sectionHeadings: template.accent,
+      bodyText: template.textColor,
+      subheadings: template.mutedColor,
+      contactInfo: template.mutedColor,
+      divider: template.accent,
+      bullets: template.accent,
+      background: "#ffffff",
+    },
+    design: { ...DEFAULT_CUSTOMIZATION.design },
+  };
+}
 
 function categoryBadgeStyle(cat: string): React.CSSProperties {
   const map: Record<string, { bg: string; color: string }> = {
@@ -58,8 +88,61 @@ function TemplatePreviewModal({
   onClose: () => void;
   onUse: () => void;
 }) {
+  const { data, sectionOrder, photoStyle, setData } = useResumeStore();
+  const toast = useToast();
+  const [editMode, setEditMode] = useState(false);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [hasEdits, setHasEdits] = useState(false);
+
+  // Draft content for in-place editing: start from the user's resume when they
+  // have one, otherwise from the sample placeholder content so a fresh user can
+  // personalize the template right here without leaving the gallery.
+  const hasData = data.personal?.name || data.personal?.email;
+  const [draft, setDraft] = useState<ResumeData>(
+    hasData ? data : (SAMPLE_RESUME as unknown as ResumeData)
+  );
+
+  // Editor styling derived from the template so the editable preview matches
+  // the template's accent colors and typography.
+  const tplCustomization = useMemo(
+    () => customizationFromTemplate(template),
+    [template]
+  );
+
+  const onEditField = useCallback(
+    (path: string, value: string) => {
+      setDraft((prev) => applyEditPath(prev, path, value));
+      setHasEdits(true);
+    },
+    []
+  );
+
+  const resetDraft = () => {
+    setDraft(hasData ? data : (SAMPLE_RESUME as unknown as ResumeData));
+    setHasEdits(false);
+    setSelectedPath(null);
+    toast("Preview reset — your edits in this dialog were discarded.", "info");
+  };
+
+  const requestClose = () => {
+    if (editMode && hasEdits) {
+      toast("You have unsaved edits. Click Open in Editor to keep them, or Reset to discard.", "info");
+      return;
+    }
+    onClose();
+  };
+
+  const openInEditor = () => {
+    if (hasEdits) {
+      setData(draft);
+      toast("Edits saved to your resume data.", "success");
+    }
+    onUse();
+    onClose();
+  };
+
   return (
-    <div className="nx-tpl-modal-overlay" onClick={onClose}>
+    <div className="nx-tpl-modal-overlay" onClick={requestClose}>
       <div className="nx-tpl-modal" onClick={(e) => e.stopPropagation()}>
         <div className="nx-full-preview-header">
           <div>
@@ -68,31 +151,96 @@ function TemplatePreviewModal({
               {template.description}
             </p>
           </div>
-          <button className="nx-full-preview-close" onClick={onClose} type="button" aria-label="Close">
+          <button className="nx-full-preview-close" onClick={requestClose} type="button" aria-label="Close">
             <X size={18} />
           </button>
         </div>
         <div className="nx-tpl-modal-body">
           <div className="nx-tpl-modal-a4">
-            <TemplateRenderer
-              template={template}
-              data={SAMPLE_RESUME as unknown as ResumeData}
-              photoStyle="circular"
-            />
+            {editMode ? (
+              <EditableResumeRenderer
+                template={template}
+                data={draft}
+                photoStyle={photoStyle}
+                customization={tplCustomization}
+                sectionOrder={sectionOrder}
+                editable={true}
+                onEditField={onEditField}
+                selectedPath={selectedPath}
+                onSelectPath={setSelectedPath}
+              />
+            ) : (
+              <TemplateRenderer
+                template={template}
+                data={SAMPLE_RESUME as unknown as ResumeData}
+                photoStyle="circular"
+              />
+            )}
           </div>
         </div>
-        <div style={{ padding: "16px 24px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-          <button className="nx-tpl-btn" onClick={onClose} type="button" style={{ padding: "10px 20px" }}>
-            Close
-          </button>
-          <button
-            className="nx-tpl-btn nx-tpl-btn-primary"
-            onClick={() => { onUse(); onClose(); }}
-            type="button"
-            style={{ padding: "10px 20px" }}
-          >
-            Open in Editor <ArrowRight size={14} />
-          </button>
+        <div
+          style={{
+            padding: "16px 24px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          {editMode ? (
+            <div className="nx-editor-canvas-hint" style={{ marginBottom: 0 }}>
+              <Sparkles size={12} color="var(--nx-cyan)" />
+              Click any text to edit it directly.
+              {hasEdits && (
+                <span style={{ color: "#fbbf24", marginLeft: "4px" }}>· Unsaved edits</span>
+              )}
+            </div>
+          ) : (
+            <span />
+          )}
+          <div style={{ display: "flex", gap: "10px", marginLeft: "auto", flexWrap: "wrap" }}>
+            <button
+              className={`nx-tpl-btn ${editMode ? "nx-tpl-btn-primary" : ""}`}
+              onClick={() => {
+                setEditMode((v) => !v);
+                setSelectedPath(null);
+              }}
+              type="button"
+              style={{ padding: "10px 20px" }}
+              title={editMode ? "Switch back to the static template preview" : "Edit this template's content directly"}
+            >
+              {editMode ? <Eye size={13} /> : <Pencil size={13} />}
+              {editMode ? "Preview" : "Edit Content"}
+            </button>
+            {editMode && hasEdits && (
+              <button className="nx-tpl-btn" onClick={resetDraft} type="button" style={{ padding: "10px 20px" }}>
+                <RotateCcw size={13} /> Reset
+              </button>
+            )}
+            <button
+              className="nx-tpl-btn"
+              onClick={() => {
+                if (editMode && hasEdits) {
+                  toast("You have unsaved edits. Click Open in Editor to keep them, or Reset to discard.", "info");
+                  return;
+                }
+                onClose();
+              }}
+              type="button"
+              style={{ padding: "10px 20px" }}
+            >
+              Close
+            </button>
+            <button
+              className="nx-tpl-btn nx-tpl-btn-primary"
+              onClick={openInEditor}
+              type="button"
+              style={{ padding: "10px 20px" }}
+            >
+              Open in Editor <ArrowRight size={14} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -141,7 +289,7 @@ export default function TemplatesGallery() {
           PREMIUM TEMPLATE GALLERY
         </h2>
         <p className="nx-section-subtitle">
-          Click <strong>Use This Template</strong> to open it directly in the editor — no re-entering your info.
+          Click <strong>Use This Template</strong> to open it directly in the editor — no re-entering your info. You can also edit content right inside the preview.
         </p>
       </div>
 
