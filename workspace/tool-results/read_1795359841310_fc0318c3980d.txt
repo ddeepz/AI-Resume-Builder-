@@ -1,0 +1,730 @@
+     1→"use client";
+     2→
+     3→import { useState, useRef } from "react";
+     4→import {
+     5→  UserRound,
+     6→  GraduationCap,
+     7→  Code,
+     8→  Briefcase,
+     9→  Box,
+    10→  Award,
+    11→  Trophy,
+    12→  Info,
+    13→  PlusCircle,
+    14→  X,
+    15→  Wand2,
+    16→  Sparkles,
+    17→  RefreshCw,
+    18→  Download,
+    19→  PieChart,
+    20→  Brain,
+    21→  CheckCircle2,
+    22→} from "lucide-react";
+    23→import { useResumeStore } from "@/lib/resume-store";
+    24→import { useToast } from "./toasts";
+    25→import { calculateAts } from "@/lib/ats";
+    26→import { exportToPDF } from "@/lib/pdf-export";
+    27→import PhotoUpload from "./photo-upload";
+    28→import AILoading from "./ai-loading";
+    29→
+    30→/* ---------- Shared bits ---------- */
+    31→
+    32→function FormHeader({
+    33→  icon: Icon,
+    34→  title,
+    35→  subtitle,
+    36→}: {
+    37→  icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+    38→  title: string;
+    39→  subtitle: string;
+    40→}) {
+    41→  return (
+    42→    <div className="nx-form-header">
+    43→      <div className="nx-form-header-icon">
+    44→        <Icon size={24} color="var(--nx-ice)" strokeWidth={1.8} />
+    45→      </div>
+    46→      <div>
+    47→        <h3>{title}</h3>
+    48→        <p>{subtitle}</p>
+    49→      </div>
+    50→    </div>
+    51→  );
+    52→}
+    53→
+    54→function Label({ children }: { children: React.ReactNode }) {
+    55→  return <label>{children}</label>;
+    56→}
+    57→
+    58→function RemoveButton({ onClick }: { onClick: () => void }) {
+    59→  return (
+    60→    <button className="nx-remove-btn" onClick={onClick} aria-label="Remove" type="button">
+    61→      <X size={14} />
+    62→    </button>
+    63→  );
+    64→}
+    65→
+    66→function AddItemButton({
+    67→  onClick,
+    68→  label,
+    69→}: {
+    70→  onClick: () => void;
+    71→  label: string;
+    72→}) {
+    73→  return (
+    74→    <button className="nx-add-item-btn" onClick={onClick} type="button">
+    75→      <PlusCircle size={16} />
+    76→      {label}
+    77→    </button>
+    78→  );
+    79→}
+    80→
+    81→/* ---------- Step 1: Personal ---------- */
+    82→export function PersonalStep() {
+    83→  const { data, setPersonal } = useResumeStore();
+    84→  const p = data.personal;
+    85→  const fields: { key: keyof typeof p; label: string; placeholder: string; type?: string }[] = [
+    86→    { key: "name", label: "Full Name *", placeholder: "John Doe" },
+    87→    { key: "email", label: "Email *", placeholder: "john@example.com", type: "email" },
+    88→    { key: "phone", label: "Phone", placeholder: "+1 234 567 890", type: "tel" },
+    89→    { key: "location", label: "Location", placeholder: "San Francisco, CA" },
+    90→    { key: "linkedin", label: "LinkedIn", placeholder: "linkedin.com/in/johndoe" },
+    91→    { key: "portfolio", label: "Portfolio", placeholder: "johndoe.dev" },
+    92→  ];
+    93→
+    94→  return (
+    95→    <div className="nx-form-step active">
+    96→      <FormHeader
+    97→        icon={UserRound}
+    98→        title="Personal Information"
+    99→        subtitle="Let's start with your basic details"
+   100→      />
+   101→      <div className="nx-form-grid">
+   102→        {fields.map((f) => (
+   103→          <div className="nx-input-group" key={f.key}>
+   104→            <Label>{f.label}</Label>
+   105→            <input
+   106→              type={f.type || "text"}
+   107→              className="nx-input-field"
+   108→              placeholder={f.placeholder}
+   109→              value={p[f.key]}
+   110→              onChange={(e) => setPersonal({ [f.key]: e.target.value } as Partial<typeof p>)}
+   111→            />
+   112→          </div>
+   113→        ))}
+   114→      </div>
+   115→      <div className="nx-input-group">
+   116→        <Label>Target Job Title</Label>
+   117→        <input
+   118→          type="text"
+   119→          className="nx-input-field"
+   120→          placeholder="Software Engineer"
+   121→          value={p.jobTitle}
+   122→          onChange={(e) => setPersonal({ jobTitle: e.target.value })}
+   123→        />
+   124→        <p style={{ fontSize: "11px", color: "rgba(248,253,255,0.4)", marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+   125→          <Info size={12} color="var(--nx-cyan)" />
+   126→          AI uses this to generate tailored content and skill suggestions
+   127→        </p>
+   128→      </div>
+   129→
+   130→      <div className="nx-input-group" style={{ marginTop: "20px" }}>
+   131→        <Label>Profile Photo (Optional)</Label>
+   132→        <PhotoUpload />
+   133→      </div>
+   134→    </div>
+   135→  );
+   136→}
+   137→
+   138→/* ---------- Step 2: Education ---------- */
+   139→export function EducationStep() {
+   140→  const { data, updateEducation, addEducation, removeEducation } = useResumeStore();
+   141→  return (
+   142→    <div className="nx-form-step active">
+   143→      <FormHeader icon={GraduationCap} title="Education" subtitle="Add your academic background" />
+   144→      <div>
+   145→        {data.education.map((e) => (
+   146→          <div className="nx-repeatable-item" key={e.id}>
+   147→            <RemoveButton onClick={() => removeEducation(e.id)} />
+   148→            <div className="nx-form-grid">
+   149→              <div className="nx-input-group">
+   150→                <Label>College/University</Label>
+   151→                <input
+   152→                  className="nx-input-field"
+   153→                  placeholder="Harvard University"
+   154→                  value={e.college}
+   155→                  onChange={(ev) => updateEducation(e.id, { college: ev.target.value })}
+   156→                />
+   157→              </div>
+   158→              <div className="nx-input-group">
+   159→                <Label>Degree</Label>
+   160→                <input
+   161→                  className="nx-input-field"
+   162→                  placeholder="B.Tech"
+   163→                  value={e.degree}
+   164→                  onChange={(ev) => updateEducation(e.id, { degree: ev.target.value })}
+   165→                />
+   166→              </div>
+   167→              <div className="nx-input-group">
+   168→                <Label>Department/Field</Label>
+   169→                <input
+   170→                  className="nx-input-field"
+   171→                  placeholder="Computer Science"
+   172→                  value={e.department}
+   173→                  onChange={(ev) => updateEducation(e.id, { department: ev.target.value })}
+   174→                />
+   175→              </div>
+   176→              <div className="nx-input-group">
+   177→                <Label>Graduation Year</Label>
+   178→                <input
+   179→                  className="nx-input-field"
+   180→                  placeholder="2024"
+   181→                  value={e.year}
+   182→                  onChange={(ev) => updateEducation(e.id, { year: ev.target.value })}
+   183→                />
+   184→              </div>
+   185→              <div className="nx-input-group" style={{ gridColumn: "span 2" }}>
+   186→                <Label>Percentage / CGPA</Label>
+   187→                <input
+   188→                  className="nx-input-field"
+   189→                  placeholder="8.5 CGPA / 85%"
+   190→                  value={e.cgpa}
+   191→                  onChange={(ev) => updateEducation(e.id, { cgpa: ev.target.value })}
+   192→                />
+   193→              </div>
+   194→            </div>
+   195→          </div>
+   196→        ))}
+   197→      </div>
+   198→      <AddItemButton onClick={addEducation} label="Add Another Education" />
+   199→    </div>
+   200→  );
+   201→}
+   202→
+   203→/* ---------- Step 3: Skills ---------- */
+   204→function TagInput({
+   205→  type,
+   206→  label,
+   207→}: {
+   208→  type: "technical" | "programming" | "soft";
+   209→  label: string;
+   210→}) {
+   211→  const { data, addSkill, removeSkill } = useResumeStore();
+   212→  const [value, setValue] = useState("");
+   213→  const inputRef = useRef<HTMLInputElement>(null);
+   214→
+   215→  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+   216→    if (e.key === "Enter" || e.key === ",") {
+   217→      e.preventDefault();
+   218→      const v = value.trim().replace(",", "");
+   219→      if (v) {
+   220→        addSkill(type, v);
+   221→        setValue("");
+   222→      }
+   223→    }
+   224→  };
+   225→
+   226→  return (
+   227→    <div className="nx-input-group">
+   228→      <Label>{label}</Label>
+   229→      <div className="nx-tag-container" onClick={() => inputRef.current?.focus()}>
+   230→        {data.skills[type].map((s, idx) => (
+   231→          <span className="nx-tag" key={s + idx}>
+   232→            {s}
+   233→            <button
+   234→              className="nx-tag-remove"
+   235→              onClick={(e) => {
+   236→                e.stopPropagation();
+   237→                removeSkill(type, idx);
+   238→              }}
+   239→              type="button"
+   240→              aria-label={`Remove ${s}`}
+   241→            >
+   242→              ×
+   243→            </button>
+   244→          </span>
+   245→        ))}
+   246→        <input
+   247→          ref={inputRef}
+   248→          className="nx-tag-input"
+   249→          placeholder="Type and press Enter..."
+   250→          value={value}
+   251→          onChange={(e) => setValue(e.target.value)}
+   252→          onKeyDown={onKey}
+   253→        />
+   254→      </div>
+   255→    </div>
+   256→  );
+   257→}
+   258→
+   259→export function SkillsStep() {
+   260→  const { data, addSkill } = useResumeStore();
+   261→  const toast = useToast();
+   262→  const [loading, setLoading] = useState(false);
+   263→  const [suggestions, setSuggestions] = useState<{ technical: string[]; soft: string[] } | null>(null);
+   264→
+   265→  const generate = async () => {
+   266→    const jobTitle = data.personal.jobTitle.trim();
+   267→    if (!jobTitle) {
+   268→      toast("Please enter a job title in the Personal Information step first.", "info");
+   269→      return;
+   270→    }
+   271→    setLoading(true);
+   272→    try {
+   273→      const res = await fetch("/api/ai/skills", {
+   274→        method: "POST",
+   275→        headers: { "Content-Type": "application/json" },
+   276→        body: JSON.stringify({ jobTitle }),
+   277→      });
+   278→      const json = await res.json();
+   279→      if (!res.ok) throw new Error(json.error || "Failed to generate suggestions");
+   280→      setSuggestions(json);
+   281→      toast("AI skill suggestions generated!", "success");
+   282→    } catch (err) {
+   283→      toast(err instanceof Error ? err.message : "Failed to generate suggestions", "error");
+   284→    } finally {
+   285→      setLoading(false);
+   286→    }
+   287→  };
+   288→
+   289→  const addSuggested = (skill: string) => {
+   290→    const isSoft = suggestions?.soft.includes(skill);
+   291→    const exists =
+   292→      data.skills.technical.includes(skill) ||
+   293→      data.skills.programming.includes(skill) ||
+   294→      data.skills.soft.includes(skill);
+   295→    if (exists) {
+   296→      toast("Skill already added!", "info");
+   297→      return;
+   298→    }
+   299→    if (isSoft) addSkill("soft", skill);
+   300→    else {
+   301→      const progSkills = ["JavaScript", "Python", "TypeScript", "Java", "Go", "SQL", "HTML5", "CSS3", "R"];
+   302→      if (progSkills.includes(skill)) addSkill("programming", skill);
+   303→      else addSkill("technical", skill);
+   304→    }
+   305→    toast(`Added: ${skill}`, "success");
+   306→  };
+   307→
+   308→  return (
+   309→    <div className="nx-form-step active">
+   310→      <FormHeader icon={Code} title="Skills" subtitle="Showcase your technical and soft skills" />
+   311→      <TagInput type="technical" label="Technical Skills" />
+   312→      <TagInput type="programming" label="Programming Languages" />
+   313→      <TagInput type="soft" label="Soft Skills" />
+   314→
+   315→      <div className="nx-ai-panel nx-holo-border" style={{ marginTop: "20px" }}>
+   316→        <div className="nx-ai-header">
+   317→          <div className="nx-ai-icon">
+   318→            <Wand2 size={20} color="var(--nx-navy)" />
+   319→          </div>
+   320→          <div>
+   321→            <h4>AI SKILL SUGGESTIONS</h4>
+   322→            <p>Based on your target job title</p>
+   323→          </div>
+   324→        </div>
+   325→        <div id="skillSuggestions">
+   326→          {!suggestions && !loading && (
+   327→            <p style={{ fontSize: "13px", color: "rgba(248,253,255,0.5)" }}>
+   328→              Enter a job title in Personal Info to get AI-powered skill suggestions.
+   329→            </p>
+   330→          )}
+   331→          {loading && (
+   332→            <div className="nx-typing-indicator">
+   333→              <div className="nx-typing-dot" />
+   334→              <div className="nx-typing-dot" />
+   335→              <div className="nx-typing-dot" />
+   336→            </div>
+   337→          )}
+   338→          {suggestions && !loading && (
+   339→            <>
+   340→              <p style={{ fontSize: "12px", color: "var(--nx-ice)", marginBottom: "12px" }}>
+   341→                Recommended for <strong>{data.personal.jobTitle}</strong>:
+   342→              </p>
+   343→              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+   344→                {[...suggestions.technical, ...suggestions.soft].map((skill) => (
+   345→                  <button
+   346→                    key={skill}
+   347→                    type="button"
+   348→                    onClick={() => addSuggested(skill)}
+   349→                    style={{
+   350→                      padding: "6px 12px",
+   351→                      background: "rgba(34,211,238,0.1)",
+   352→                      border: "1px solid rgba(34,211,238,0.3)",
+   353→                      borderRadius: "20px",
+   354→                      fontSize: "12px",
+   355→                      color: "var(--nx-ice)",
+   356→                      cursor: "pointer",
+   357→                      transition: "all 0.3s",
+   358→                      display: "inline-flex",
+   359→                      alignItems: "center",
+   360→                      gap: "4px",
+   361→                    }}
+   362→                  >
+   363→                    <PlusCircle size={9} /> {skill}
+   364→                  </button>
+   365→                ))}
+   366→              </div>
+   367→            </>
+   368→          )}
+   369→        </div>
+   370→        <button className="nx-ai-action-btn" onClick={generate} disabled={loading} type="button">
+   371→          <Sparkles size={14} />
+   372→          {loading ? "Generating..." : "Generate Suggestions"}
+   373→        </button>
+   374→      </div>
+   375→    </div>
+   376→  );
+   377→}
+   378→
+   379→/* ---------- Step 4: Experience ---------- */
+   380→export function ExperienceStep() {
+   381→  const { data, updateExperience, addExperience, removeExperience } = useResumeStore();
+   382→  return (
+   383→    <div className="nx-form-step active">
+   384→      <FormHeader icon={Briefcase} title="Experience" subtitle="Add your work history" />
+   385→      <div>
+   386→        {data.experience.map((e) => (
+   387→          <div className="nx-repeatable-item" key={e.id}>
+   388→            <RemoveButton onClick={() => removeExperience(e.id)} />
+   389→            <div className="nx-form-grid">
+   390→              <div className="nx-input-group">
+   391→                <Label>Company</Label>
+   392→                <input
+   393→                  className="nx-input-field"
+   394→                  placeholder="Google"
+   395→                  value={e.company}
+   396→                  onChange={(ev) => updateExperience(e.id, { company: ev.target.value })}
+   397→                />
+   398→              </div>
+   399→              <div className="nx-input-group">
+   400→                <Label>Job Position</Label>
+   401→                <input
+   402→                  className="nx-input-field"
+   403→                  placeholder="Software Engineer"
+   404→                  value={e.position}
+   405→                  onChange={(ev) => updateExperience(e.id, { position: ev.target.value })}
+   406→                />
+   407→              </div>
+   408→              <div className="nx-input-group" style={{ gridColumn: "span 2" }}>
+   409→                <Label>Duration</Label>
+   410→                <input
+   411→                  className="nx-input-field"
+   412→                  placeholder="Jan 2023 - Present"
+   413→                  value={e.duration}
+   414→                  onChange={(ev) => updateExperience(e.id, { duration: ev.target.value })}
+   415→                />
+   416→              </div>
+   417→              <div className="nx-input-group" style={{ gridColumn: "span 2" }}>
+   418→                <Label>Responsibilities &amp; Achievements</Label>
+   419→                <textarea
+   420→                  className="nx-input-field"
+   421→                  placeholder={"• Developed and maintained web applications using React and Node.js\n• Improved API performance by 40%\n• Led a team of 5 developers"}
+   422→                  value={e.responsibilities}
+   423→                  onChange={(ev) => updateExperience(e.id, { responsibilities: ev.target.value })}
+   424→                />
+   425→              </div>
+   426→            </div>
+   427→          </div>
+   428→        ))}
+   429→      </div>
+   430→      <AddItemButton onClick={addExperience} label="Add Another Experience" />
+   431→    </div>
+   432→  );
+   433→}
+   434→
+   435→/* ---------- Step 5: Projects ---------- */
+   436→export function ProjectsStep() {
+   437→  const { data, updateProject, addProject, removeProject } = useResumeStore();
+   438→  return (
+   439→    <div className="nx-form-step active">
+   440→      <FormHeader icon={Box} title="Projects" subtitle="Highlight your best work" />
+   441→      <div>
+   442→        {data.projects.map((p) => (
+   443→          <div className="nx-repeatable-item" key={p.id}>
+   444→            <RemoveButton onClick={() => removeProject(p.id)} />
+   445→            <div className="nx-form-grid">
+   446→              <div className="nx-input-group" style={{ gridColumn: "span 2" }}>
+   447→                <Label>Project Title</Label>
+   448→                <input
+   449→                  className="nx-input-field"
+   450→                  placeholder="AI Resume Builder"
+   451→                  value={p.title}
+   452→                  onChange={(ev) => updateProject(p.id, { title: ev.target.value })}
+   453→                />
+   454→              </div>
+   455→              <div className="nx-input-group" style={{ gridColumn: "span 2" }}>
+   456→                <Label>Description</Label>
+   457→                <textarea
+   458→                  className="nx-input-field"
+   459→                  placeholder="Built a futuristic AI-powered resume builder with 3D visuals and real-time ATS scoring..."
+   460→                  value={p.description}
+   461→                  onChange={(ev) => updateProject(p.id, { description: ev.target.value })}
+   462→                />
+   463→              </div>
+   464→              <div className="nx-input-group" style={{ gridColumn: "span 2" }}>
+   465→                <Label>Technologies Used</Label>
+   466→                <input
+   467→                  className="nx-input-field"
+   468→                  placeholder="React, Three.js, Node.js, OpenAI API"
+   469→                  value={p.technologies}
+   470→                  onChange={(ev) => updateProject(p.id, { technologies: ev.target.value })}
+   471→                />
+   472→              </div>
+   473→            </div>
+   474→          </div>
+   475→        ))}
+   476→      </div>
+   477→      <AddItemButton onClick={addProject} label="Add Another Project" />
+   478→    </div>
+   479→  );
+   480→}
+   481→
+   482→/* ---------- Step 6: Certificates & Languages ---------- */
+   483→export function CertificatesStep() {
+   484→  const { data, updateCertificate, addCertificate, removeCertificate, setLanguages } =
+   485→    useResumeStore();
+   486→  return (
+   487→    <div className="nx-form-step active">
+   488→      <FormHeader
+   489→        icon={Award}
+   490→        title="Certificates & Languages"
+   491→        subtitle="Add your certifications and language proficiency"
+   492→      />
+   493→      <h4
+   494→        style={{
+   495→          fontFamily: "var(--font-orbitron), sans-serif",
+   496→          fontSize: "14px",
+   497→          color: "var(--nx-ice)",
+   498→          marginBottom: "15px",
+   499→          letterSpacing: "1px",
+   500→        }}
+   501→      >
+   502→        CERTIFICATES
+   503→      </h4>
+   504→      <div>
+   505→        {data.certificates.map((c) => (
+   506→          <div className="nx-repeatable-item" key={c.id}>
+   507→            <RemoveButton onClick={() => removeCertificate(c.id)} />
+   508→            <div className="nx-form-grid">
+   509→              <div className="nx-input-group">
+   510→                <Label>Certificate Name</Label>
+   511→                <input
+   512→                  className="nx-input-field"
+   513→                  placeholder="AWS Solutions Architect"
+   514→                  value={c.name}
+   515→                  onChange={(ev) => updateCertificate(c.id, { name: ev.target.value })}
+   516→                />
+   517→              </div>
+   518→              <div className="nx-input-group">
+   519→                <Label>Organization</Label>
+   520→                <input
+   521→                  className="nx-input-field"
+   522→                  placeholder="Amazon Web Services"
+   523→                  value={c.organization}
+   524→                  onChange={(ev) => updateCertificate(c.id, { organization: ev.target.value })}
+   525→                />
+   526→              </div>
+   527→              <div className="nx-input-group">
+   528→                <Label>Year</Label>
+   529→                <input
+   530→                  className="nx-input-field"
+   531→                  placeholder="2024"
+   532→                  value={c.year}
+   533→                  onChange={(ev) => updateCertificate(c.id, { year: ev.target.value })}
+   534→                />
+   535→              </div>
+   536→            </div>
+   537→          </div>
+   538→        ))}
+   539→      </div>
+   540→      <AddItemButton onClick={addCertificate} label="Add Certificate" />
+   541→
+   542→      <h4
+   543→        style={{
+   544→          fontFamily: "var(--font-orbitron), sans-serif",
+   545→          fontSize: "14px",
+   546→          color: "var(--nx-ice)",
+   547→          margin: "30px 0 15px",
+   548→          letterSpacing: "1px",
+   549→        }}
+   550→      >
+   551→        LANGUAGES
+   552→      </h4>
+   553→      <div className="nx-input-group">
+   554→        <Label>Languages (comma separated)</Label>
+   555→        <input
+   556→          className="nx-input-field"
+   557→          placeholder="English (Fluent), Spanish (Intermediate), Hindi (Native)"
+   558→          value={data.languages}
+   559→          onChange={(e) => setLanguages(e.target.value)}
+   560→        />
+   561→      </div>
+   562→    </div>
+   563→  );
+   564→}
+   565→
+   566→/* ---------- Step 7: Review & Export ---------- */
+   567→export function ReviewStep() {
+   568→  const { data, setSummary, setAts, selectedTemplate, photoStyle } = useResumeStore();
+   569→  const toast = useToast();
+   570→  const [loading, setLoading] = useState(false);
+   571→  const [done, setDone] = useState(false);
+   572→  const [exporting, setExporting] = useState(false);
+   573→  const [aiLoading, setAiLoading] = useState(false);
+   574→
+   575→  const generate = async () => {
+   576→    setLoading(true);
+   577→    setAiLoading(true);
+   578→    try {
+   579→      const res = await fetch("/api/ai/summary", {
+   580→        method: "POST",
+   581→        headers: { "Content-Type": "application/json" },
+   582→        body: JSON.stringify({
+   583→          name: data.personal.name,
+   584→          jobTitle: data.personal.jobTitle,
+   585→          skills: [...data.skills.technical, ...data.skills.programming],
+   586→          experience: data.experience,
+   587→        }),
+   588→      });
+   589→      const json = await res.json();
+   590→      if (!res.ok) throw new Error(json.error || "Failed to generate summary");
+   591→      setSummary(json.summary);
+   592→      setDone(true);
+   593→      toast("AI summary generated successfully!", "success");
+   594→      const ats = calculateAts({ ...data, summary: json.summary });
+   595→      setAts(ats.score, ats.factors);
+   596→    } catch (err) {
+   597→      toast(err instanceof Error ? err.message : "Failed to generate summary", "error");
+   598→    } finally {
+   599→      setLoading(false);
+   600→      setTimeout(() => setAiLoading(false), 500);
+   601→    }
+   602→  };
+   603→
+   604→  const recalc = () => {
+   605→    const ats = calculateAts(data);
+   606→    setAts(ats.score, ats.factors);
+   607→    toast("ATS score recalculated!", "success");
+   608→  };
+   609→
+   610→  const onExport = async () => {
+   611→    setExporting(true);
+   612→    try {
+   613→      await exportToPDF(data, selectedTemplate, photoStyle);
+   614→      toast("Resume downloaded successfully!", "success");
+   615→    } catch (err) {
+   616→      toast(err instanceof Error ? `Export failed: ${err.message}` : "PDF export failed", "error");
+   617→    } finally {
+   618→      setExporting(false);
+   619→    }
+   620→  };
+   621→
+   622→  return (
+   623→    <div className="nx-form-step active">
+   624→      <FormHeader icon={Trophy} title="Review & Export" subtitle="AI analysis and final polish" />
+   625→
+   626→      {/* AI Summary Generator */}
+   627→      <div className="nx-ai-panel nx-holo-border">
+   628→        <div className="nx-ai-header">
+   629→          <div className="nx-ai-icon">
+   630→            <Brain size={20} color="var(--nx-navy)" />
+   631→          </div>
+   632→          <div>
+   633→            <h4>AI SUMMARY GENERATOR</h4>
+   634→            <p>Generate a professional summary instantly</p>
+   635→          </div>
+   636→        </div>
+   637→        <div>
+   638→          {!data.summary && !loading && (
+   639→            <p style={{ fontSize: "13px", color: "rgba(248,253,255,0.5)" }}>
+   640→              Click below to generate a tailored professional summary using AI.
+   641→            </p>
+   642→          )}
+   643→          {loading && (
+   644→            <div className="nx-typing-indicator">
+   645→              <div className="nx-typing-dot" />
+   646→              <div className="nx-typing-dot" />
+   647→              <div className="nx-typing-dot" />
+   648→            </div>
+   649→          )}
+   650→          {data.summary && !loading && (
+   651→            <div
+   652→              className="nx-ai-suggestion"
+   653→              style={{ background: "rgba(34,211,238,0.08)", borderColor: "rgba(34,211,238,0.2)" }}
+   654→            >
+   655→              <CheckCircle2 size={18} color="#4ade80" />
+   656→              <div>
+   657→                <p style={{ marginBottom: "10px" }}>{data.summary}</p>
+   658→              </div>
+   659→            </div>
+   660→          )}
+   661→        </div>
+   662→        <button className="nx-ai-action-btn" onClick={generate} disabled={loading} type="button">
+   663→          {loading ? (
+   664→            <>
+   665→              <RefreshCw size={14} className="animate-spin" /> Generating...
+   666→            </>
+   667→          ) : done ? (
+   668→            <>
+   669→              <CheckCircle2 size={14} /> Regenerate Summary
+   670→            </>
+   671→          ) : (
+   672→            <>
+   673→              <Wand2 size={14} /> Generate AI Summary
+   674→            </>
+   675→          )}
+   676→        </button>
+   677→      </div>
+   678→
+   679→      {/* ATS recalc */}
+   680→      <div className="nx-glass-card nx-ats-dashboard nx-holo-border">
+   681→        <h4
+   682→          style={{
+   683→            fontFamily: "var(--font-orbitron), sans-serif",
+   684→            fontSize: "16px",
+   685→            color: "var(--nx-frost)",
+   686→            textAlign: "center",
+   687→            marginBottom: "20px",
+   688→            letterSpacing: "2px",
+   689→            display: "flex",
+   690→            alignItems: "center",
+   691→            justifyContent: "center",
+   692→            gap: "8px",
+   693→          }}
+   694→        >
+   695→          <PieChart size={18} color="var(--nx-cyan)" />
+   696→          ATS SCORE ANALYSIS
+   697→        </h4>
+   698→        <p style={{ fontSize: "13px", color: "rgba(248,253,255,0.6)", textAlign: "center" }}>
+   699→          Check the live ATS dashboard on the right, or recalculate your score below.
+   700→        </p>
+   701→        <button className="nx-ai-action-btn" onClick={recalc} type="button" style={{ marginTop: "20px" }}>
+   702→          <RefreshCw size={14} /> Recalculate Score
+   703→        </button>
+   704→      </div>
+   705→
+   706→      {/* Export */}
+   707→      <button
+   708→        className="nx-btn-primary"
+   709→        style={{ width: "100%", marginTop: "20px", padding: "18px", fontSize: "16px" }}
+   710→        onClick={onExport}
+   711→        type="button"
+   712→        disabled={exporting}
+   713→      >
+   714→        {exporting ? (
+   715→          <>
+   716→            <RefreshCw size={16} className="animate-spin" /> Exporting...
+   717→          </>
+   718→        ) : (
+   719→          <>
+   720→            <Download size={16} />
+   721→            Download PDF Resume
+   722→          </>
+   723→        )}
+   724→      </button>
+   725→
+   726→      <AILoading show={aiLoading} text="NEXUS AI is creating your future" duration={2500} />
+   727→    </div>
+   728→  );
+   729→}
+   730→
