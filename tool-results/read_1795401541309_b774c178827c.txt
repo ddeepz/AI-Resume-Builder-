@@ -1,0 +1,813 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import {
+     4→     4→  Mail,
+     5→     5→  Phone,
+     6→     6→  MapPin,
+     7→     7→  Globe,
+     8→     8→  Linkedin,
+     9→     9→  Code,
+    10→    10→  Briefcase,
+    11→    11→  Box,
+    12→    12→  Award,
+    13→    13→  GraduationCap,
+    14→    14→} from "lucide-react";
+    15→    15→import type { ResumeData } from "@/lib/resume-store";
+    16→    16→import type { PhotoStyle } from "@/lib/resume-store";
+    17→    17→import type { TemplateConfig } from "@/lib/templates";
+    18→    18→import { SAMPLE_RESUME } from "@/lib/templates";
+    19→    19→
+    20→    20→interface RendererProps {
+    21→    21→  template: TemplateConfig;
+    22→    22→  data: ResumeData;
+    23→    23→  photoStyle: PhotoStyle;
+    24→    24→}
+    25→    25→
+    26→    26→function PhotoView({
+    27→    27→  photo,
+    28→    28→  style,
+    29→    29→  size = 90,
+    30→    30→  template,
+    31→    31→}: {
+    32→    32→  photo: string;
+    33→    33→  style: PhotoStyle;
+    34→    34→  size?: number;
+    35→    35→  template: TemplateConfig;
+    36→    36→}) {
+    37→    37→  if (!photo) return null;
+    38→    38→  const borderRadius =
+    39→    39→    style === "circular" ? "50%" : style === "rounded" ? "12px" : "0px";
+    40→    40→  return (
+    41→    41→    <img
+    42→    42→      src={photo}
+    43→    43→      alt="Profile"
+    44→    44→      style={{
+    45→    45→        width: `${size}px`,
+    46→    46→        height: `${size}px`,
+    47→    47→        objectFit: "cover",
+    48→    48→        borderRadius,
+    49→    49→        border: `3px solid ${template.accent}`,
+    50→    50→      }}
+    51→    51→    />
+    52→    52→  );
+    53→    53→}
+    54→    54→
+    55→    55→function ContactLine({ data, template }: { data: ResumeData; template: TemplateConfig }) {
+    56→    56→  const p = data.personal;
+    57→    57→  return (
+    58→    58→    <div className="nx-tpl-contact">
+    59→    59→      {p.email && <span><Mail size={10} /> {p.email}</span>}
+    60→    60→      {p.phone && <span><Phone size={10} /> {p.phone}</span>}
+    61→    61→      {p.location && <span><MapPin size={10} /> {p.location}</span>}
+    62→    62→      {p.linkedin && <span><Linkedin size={10} /> {p.linkedin}</span>}
+    63→    63→      {p.portfolio && <span><Globe size={10} /> {p.portfolio}</span>}
+    64→    64→    </div>
+    65→    65→  );
+    66→    66→}
+    67→    67→
+    68→    68→function SidebarContent({
+    69→    69→  data,
+    70→    70→  template,
+    71→    71→  photo,
+    72→    72→  photoStyle,
+    73→    73→}: {
+    74→    74→  data: ResumeData;
+    75→    75→  template: TemplateConfig;
+    76→    76→  photo: string;
+    77→    77→  photoStyle: PhotoStyle;
+    78→    78→}) {
+    79→    79→  const allSkills = [...data.skills.technical, ...data.skills.programming];
+    80→    80→  return (
+    81→    81→    <>
+    82→    82→      {template.hasPhoto && photo && template.photoPosition === "sidebar-top" && (
+    83→    83→        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+    84→    84→          <PhotoView photo={photo} style={photoStyle} size={110} template={template} />
+    85→    85→        </div>
+    86→    86→      )}
+    87→    87→      <div className="nx-tpl-side-block">
+    88→    88→        <h3 style={{ color: template.accent }}>CONTACT</h3>
+    89→    89→        <div className="nx-tpl-side-contact">
+    90→    90→          {data.personal.email && <span>{data.personal.email}</span>}
+    91→    91→          {data.personal.phone && <span>{data.personal.phone}</span>}
+    92→    92→          {data.personal.location && <span>{data.personal.location}</span>}
+    93→    93→          {data.personal.linkedin && <span>{data.personal.linkedin}</span>}
+    94→    94→          {data.personal.portfolio && <span>{data.personal.portfolio}</span>}
+    95→    95→        </div>
+    96→    96→      </div>
+    97→    97→      {allSkills.length > 0 && (
+    98→    98→        <div className="nx-tpl-side-block">
+    99→    99→          <h3 style={{ color: template.accent }}>SKILLS</h3>
+   100→   100→          <div className="nx-tpl-side-skills">
+   101→   101→            {allSkills.map((s, i) => (
+   102→   102→              <span key={s + i}>{s}</span>
+   103→   103→            ))}
+   104→   104→            {data.skills.soft.map((s, i) => (
+   105→   105→              <span key={"soft" + i}>{s}</span>
+   106→   106→            ))}
+   107→   107→          </div>
+   108→   108→        </div>
+   109→   109→      )}
+   110→   110→      {data.languages && (
+   111→   111→        <div className="nx-tpl-side-block">
+   112→   112→          <h3 style={{ color: template.accent }}>LANGUAGES</h3>
+   113→   113→          <p className="nx-tpl-side-text">{data.languages}</p>
+   114→   114→        </div>
+   115→   115→      )}
+   116→   116→      {data.certificates.some((c) => c.name) && (
+   117→   117→        <div className="nx-tpl-side-block">
+   118→   118→          <h3 style={{ color: template.accent }}>CERTIFICATIONS</h3>
+   119→   119→          {data.certificates.map(
+   120→   120→            (c, i) =>
+   121→   121→              c.name && (
+   122→   122→                <div key={i} className="nx-tpl-side-item">
+   123→   123→                  <strong>{c.name}</strong>
+   124→   124→                  {c.organization && <span>{c.organization}</span>}
+   125→   125→                  {c.year && <span>{c.year}</span>}
+   126→   126→                </div>
+   127→   127→              )
+   128→   128→          )}
+   129→   129→        </div>
+   130→   130→      )}
+   131→   131→    </>
+   132→   132→  );
+   133→   133→}
+   134→   134→
+   135→   135→function MainContent({ data, template }: { data: ResumeData; template: TemplateConfig }) {
+   136→   136→  return (
+   137→   137→    <>
+   138→   138→      {data.summary && (
+   139→   139→        <div className="nx-tpl-section">
+   140→   140→          <h2 style={{ color: template.accent }}>PROFESSIONAL SUMMARY</h2>
+   141→   141→          <p className="nx-tpl-summary">{data.summary}</p>
+   142→   142→        </div>
+   143→   143→      )}
+   144→   144→      {data.experience.some((e) => e.company || e.position) && (
+   145→   145→        <div className="nx-tpl-section">
+   146→   146→          <h2 style={{ color: template.accent }}>EXPERIENCE</h2>
+   147→   147→          {data.experience.map(
+   148→   148→            (e, i) =>
+   149→   149→              (e.company || e.position) && (
+   150→   150→                <div key={i} className="nx-tpl-entry">
+   151→   151→                  <div className="nx-tpl-entry-head">
+   152→   152→                    <strong>{e.position || ""}</strong>
+   153→   153→                    <span className="nx-tpl-date">{e.duration || ""}</span>
+   154→   154→                  </div>
+   155→   155→                  <div className="nx-tpl-entry-sub">{e.company || ""}</div>
+   156→   156→                  {e.responsibilities && (
+   157→   157→                    <p className="nx-tpl-resp">{e.responsibilities}</p>
+   158→   158→                  )}
+   159→   159→                </div>
+   160→   160→              )
+   161→   161→          )}
+   162→   162→        </div>
+   163→   163→      )}
+   164→   164→      {data.education.some((e) => e.college) && (
+   165→   165→        <div className="nx-tpl-section">
+   166→   166→          <h2 style={{ color: template.accent }}>EDUCATION</h2>
+   167→   167→          {data.education.map(
+   168→   168→            (e, i) =>
+   169→   169→              (e.college || e.degree) && (
+   170→   170→                <div key={i} className="nx-tpl-entry">
+   171→   171→                  <div className="nx-tpl-entry-head">
+   172→   172→                    <strong>
+   173→   173→                      {e.degree || ""} {e.department ? "in " + e.department : ""}
+   174→   174→                    </strong>
+   175→   175→                    <span className="nx-tpl-date">{e.year || ""}</span>
+   176→   176→                  </div>
+   177→   177→                  <div className="nx-tpl-entry-sub">{e.college || ""}</div>
+   178→   178→                  {e.cgpa && <p className="nx-tpl-resp">Score: {e.cgpa}</p>}
+   179→   179→                </div>
+   180→   180→              )
+   181→   181→          )}
+   182→   182→        </div>
+   183→   183→      )}
+   184→   184→      {data.projects.some((p) => p.title) && (
+   185→   185→        <div className="nx-tpl-section">
+   186→   186→          <h2 style={{ color: template.accent }}>PROJECTS</h2>
+   187→   187→          {data.projects.map(
+   188→   188→            (p, i) =>
+   189→   189→              p.title && (
+   190→   190→                <div key={i} className="nx-tpl-entry">
+   191→   191→                  <strong>{p.title}</strong>
+   192→   192→                  {p.technologies && (
+   193→   193→                    <div className="nx-tpl-tech" style={{ color: template.accent }}>
+   194→   194→                      Tech: {p.technologies}
+   195→   195→                    </div>
+   196→   196→                  )}
+   197→   197→                  {p.description && <p className="nx-tpl-resp">{p.description}</p>}
+   198→   198→                </div>
+   199→   199→              )
+   200→   200→          )}
+   201→   201→        </div>
+   202→   202→      )}
+   203→   203→    </>
+   204→   204→  );
+   205→   205→}
+   206→   206→
+   207→   207→export function TemplateRenderer({ template, data, photoStyle }: RendererProps) {
+   208→   208→  const p = data.personal;
+   209→   209→  const photo = p.photo;
+   210→   210→  const hasData = p.name || p.email;
+   211→   211→  const renderData = hasData ? data : (SAMPLE_RESUME as unknown as ResumeData);
+   212→   212→  const rp = renderData.personal;
+   213→   213→
+   214→   214→  const rootStyle: React.CSSProperties = {
+   215→   215→    background: "#ffffff",
+   216→   216→    color: template.textColor,
+   217→   217→    fontFamily: template.fontBody,
+   218→   218→    borderRadius: "8px",
+   219→   219→    overflow: "hidden",
+   220→   220→    minHeight: "100%",
+   221→   221→    position: "relative",
+   222→   222→  };
+   223→   223→
+   224→   224→  // HEADER BAR layout (executive, professional-blue)
+   225→   225→  if (template.layout === "header-bar") {
+   226→   226→    return (
+   227→   227→      <div className="nx-tpl-root" style={rootStyle}>
+   228→   228→        <div
+   229→   229→          className="nx-tpl-header-bar"
+   230→   230→          style={{
+   231→   231→            background: `linear-gradient(135deg, ${template.accent}, ${template.accentSecondary})`,
+   232→   232→            padding: "30px 40px",
+   233→   233→            color: "#fff",
+   234→   234→            display: "flex",
+   235→   235→            justifyContent: "space-between",
+   236→   236→            alignItems: "center",
+   237→   237→            flexWrap: "wrap",
+   238→   238→            gap: "15px",
+   239→   239→          }}
+   240→   240→        >
+   241→   241→          <div>
+   242→   242→            <h1
+   243→   243→              style={{
+   244→   244→                fontFamily: template.fontHeading,
+   245→   245→                fontSize: "26px",
+   246→   246→                fontWeight: 800,
+   247→   247→                margin: 0,
+   248→   248→                letterSpacing: "1px",
+   249→   249→              }}
+   250→   250→            >
+   251→   251→              {rp.name || "Your Name"}
+   252→   252→            </h1>
+   253→   253→            <p style={{ fontSize: "14px", opacity: 0.9, margin: "4px 0 0" }}>
+   254→   254→              {rp.jobTitle || "Professional Title"}
+   255→   255→            </p>
+   256→   256→          </div>
+   257→   257→          {template.hasPhoto && photo && template.photoPosition === "top-right" && (
+   258→   258→            <PhotoView photo={photo} style={photoStyle} size={90} template={template} />
+   259→   259→          )}
+   260→   260→        </div>
+   261→   261→        <div style={{ padding: "25px 40px" }}>
+   262→   262→          <div
+   263→   263→            style={{
+   264→   264→              display: "flex",
+   265→   265→              flexWrap: "wrap",
+   266→   266→              gap: "15px",
+   267→   267→              fontSize: "12px",
+   268→   268→              marginBottom: "20px",
+   269→   269→              color: template.mutedColor,
+   270→   270→              paddingBottom: "15px",
+   271→   271→              borderBottom: `2px solid ${template.accent}33`,
+   272→   272→            }}
+   273→   273→          >
+   274→   274→            {rp.email && <span>{rp.email}</span>}
+   275→   275→            {rp.phone && <span>{rp.phone}</span>}
+   276→   276→            {rp.location && <span>{rp.location}</span>}
+   277→   277→            {rp.linkedin && <span>{rp.linkedin}</span>}
+   278→   278→          </div>
+   279→   279→          <MainContent data={renderData} template={template} />
+   280→   280→        </div>
+   281→   281→      </div>
+   282→   282→    );
+   283→   283→  }
+   284→   284→
+   285→   285→  // SIDEBAR layout (graphic-designer) - left sidebar with accent background
+   286→   286→  if (template.layout === "sidebar") {
+   287→   287→    return (
+   288→   288→      <div className="nx-tpl-root" style={rootStyle}>
+   289→   289→        <div style={{ display: "flex", minHeight: "500px" }}>
+   290→   290→          <div
+   291→   291→            style={{
+   292→   292→              width: "35%",
+   293→   293→              background: `linear-gradient(180deg, ${template.accent}, ${template.accentSecondary})`,
+   294→   294→              color: "#fff",
+   295→   295→              padding: "30px 20px",
+   296→   296→            }}
+   297→   297→          >
+   298→   298→            <SidebarContent
+   299→   299→              data={renderData}
+   300→   300→              template={{ ...template, accent: "#fff", accentSecondary: "#fff" }}
+   301→   301→              photo={photo}
+   302→   302→              photoStyle={photoStyle}
+   303→   303→            />
+   304→   304→          </div>
+   305→   305→          <div style={{ flex: 1, padding: "30px 25px" }}>
+   306→   306→            <h1
+   307→   307→              style={{
+   308→   308→                fontFamily: template.fontHeading,
+   309→   309→                fontSize: "24px",
+   310→   310→                fontWeight: 800,
+   311→   311→                color: template.textColor,
+   312→   312→                margin: 0,
+   313→   313→              }}
+   314→   314→            >
+   315→   315→              {rp.name || "Your Name"}
+   316→   316→            </h1>
+   317→   317→            <p
+   318→   318→              style={{
+   319→   319→                fontSize: "13px",
+   320→   320→                color: template.accent,
+   321→   321→                fontWeight: 600,
+   322→   322→                margin: "3px 0 15px",
+   323→   323→              }}
+   324→   324→            >
+   325→   325→              {rp.jobTitle || "Professional Title"}
+   326→   326→            </p>
+   327→   327→            <MainContent data={renderData} template={template} />
+   328→   328→          </div>
+   329→   329→        </div>
+   330→   330→      </div>
+   331→   331→    );
+   332→   332→  }
+   333→   333→
+   334→   334→  // TWO-COLUMN layouts
+   335→   335→  if (
+   336→   336→    template.layout === "two-column-left" ||
+   337→   337→    template.layout === "two-column-right"
+   338→   338→  ) {
+   339→   339→    const isLeft = template.layout === "two-column-left";
+   340→   340→    const sidebar = (
+   341→   341→      <div
+   342→   342→        style={{
+   343→   343→          width: "32%",
+   344→   344→          background: `linear-gradient(180deg, ${template.accent}15, ${template.accentSecondary}10)`,
+   345→   345→          padding: "25px 18px",
+   346→   346→          borderRight: isLeft ? `2px solid ${template.accent}33` : "none",
+   347→   347→          borderLeft: !isLeft ? `2px solid ${template.accent}33` : "none",
+   348→   348→        }}
+   349→   349→      >
+   350→   350→        <SidebarContent
+   351→   351→          data={renderData}
+   352→   352→          template={template}
+   353→   353→          photo={photo}
+   354→   354→          photoStyle={photoStyle}
+   355→   355→        />
+   356→   356→      </div>
+   357→   357→    );
+   358→   358→    const main = (
+   359→   359→      <div style={{ flex: 1, padding: "25px 22px" }}>
+   360→   360→        <h1
+   361→   361→          style={{
+   362→   362→            fontFamily: template.fontHeading,
+   363→   363→            fontSize: "24px",
+   364→   364→            fontWeight: 800,
+   365→   365→            color: template.textColor,
+   366→   366→            margin: 0,
+   367→   367→          }}
+   368→   368→        >
+   369→   369→          {rp.name || "Your Name"}
+   370→   370→        </h1>
+   371→   371→        <p
+   372→   372→          style={{
+   373→   373→            fontSize: "13px",
+   374→   374→            color: template.accent,
+   375→   375→            fontWeight: 600,
+   376→   376→            margin: "3px 0 15px",
+   377→   377→          }}
+   378→   378→        >
+   379→   379→          {rp.jobTitle || "Professional Title"}
+   380→   380→        </p>
+   381→   381→        <MainContent data={renderData} template={template} />
+   382→   382→      </div>
+   383→   383→    );
+   384→   384→    return (
+   385→   385→      <div className="nx-tpl-root" style={rootStyle}>
+   386→   386→        <div style={{ display: "flex", minHeight: "500px" }}>
+   387→   387→          {isLeft ? (
+   388→   388→            <>
+   389→   389→              {sidebar}
+   390→   390→              {main}
+   391→   391→            </>
+   392→   392→          ) : (
+   393→   393→            <>
+   394→   394→              {main}
+   395→   395→              {sidebar}
+   396→   396→            </>
+   397→   397→          )}
+   398→   398→        </div>
+   399→   399→      </div>
+   400→   400→    );
+   401→   401→  }
+   402→   402→
+   403→   403→  // SINGLE column layout (default)
+   404→   404→  return (
+   405→   405→    <div className="nx-tpl-root" style={{ ...rootStyle, padding: "35px 40px" }}>
+   406→   406→      <div
+   407→   407→        style={{
+   408→   408→          display: "flex",
+   409→   409→          justifyContent: "space-between",
+   410→   410→          alignItems: "flex-start",
+   411→   411→          flexWrap: "wrap",
+   412→   412→          gap: "15px",
+   413→   413→          borderBottom: `3px solid ${template.accent}`,
+   414→   414→          paddingBottom: "15px",
+   415→   415→          marginBottom: "20px",
+   416→   416→        }}
+   417→   417→      >
+   418→   418→        <div>
+   419→   419→          <h1
+   420→   420→            style={{
+   421→   421→              fontFamily: template.fontHeading,
+   422→   422→              fontSize: "28px",
+   423→   423→              fontWeight: 800,
+   424→   424→              color: template.textColor,
+   425→   425→              margin: 0,
+   426→   426→              letterSpacing: template.fontHeading.includes("serif") ? "0" : "1px",
+   427→   427→            }}
+   428→   428→          >
+   429→   429→            {rp.name || "Your Name"}
+   430→   430→          </h1>
+   431→   431→          <p
+   432→   432→            style={{
+   433→   433→              fontSize: "14px",
+   434→   434→              color: template.accent,
+   435→   435→              fontWeight: 600,
+   436→   436→              margin: "4px 0 0",
+   437→   437→            }}
+   438→   438→          >
+   439→   439→            {rp.jobTitle || "Professional Title"}
+   440→   440→          </p>
+   441→   441→        </div>
+   442→   442→        {template.hasPhoto && photo && template.photoPosition === "top-right" && (
+   443→   443→          <PhotoView photo={photo} style={photoStyle} size={90} template={template} />
+   444→   444→        )}
+   445→   445→      </div>
+   446→   446→      <ContactLine data={renderData} template={template} />
+   447→   447→      <MainContent data={renderData} template={template} />
+   448→   448→      {data.certificates.some((c) => c.name) && template.layout === "single" && (
+   449→   449→        <div className="nx-tpl-section">
+   450→   450→          <h2 style={{ color: template.accent }}>CERTIFICATIONS</h2>
+   451→   451→          {data.certificates.map(
+   452→   452→            (c, i) =>
+   453→   453→              c.name && (
+   454→   454→                <div key={i} className="nx-tpl-entry">
+   455→   455→                  <div className="nx-tpl-entry-head">
+   456→   456→                    <strong>{c.name}</strong>
+   457→   457→                    <span className="nx-tpl-date">{c.year}</span>
+   458→   458→                  </div>
+   459→   459→                  <div className="nx-tpl-entry-sub">{c.organization}</div>
+   460→   460→                </div>
+   461→   461→              )
+   462→   462→          )}
+   463→   463→        </div>
+   464→   464→      )}
+   465→   465→      {data.languages && template.layout === "single" && (
+   466→   466→        <div className="nx-tpl-section">
+   467→   467→          <h2 style={{ color: template.accent }}>LANGUAGES</h2>
+   468→   468→          <p className="nx-tpl-resp">{data.languages}</p>
+   469→   469→        </div>
+   470→   470→      )}
+   471→   471→    </div>
+   472→   472→  );
+   473→   473→}
+   474→   474→
+   475→   475→// Miniature preview for template gallery cards
+   476→   476→// ===== REALISTIC MINIATURE RESUME PREVIEW =====
+   477→   477→// Each miniature looks like an actual miniature resume document with real text content
+   478→   478→
+   479→   479→function MiniText({ children, color, size = 6, weight = 400, italic = false }: {
+   480→   480→  children: React.ReactNode;
+   481→   481→  color?: string;
+   482→   482→  size?: number;
+   483→   483→  weight?: number;
+   484→   484→  italic?: boolean;
+   485→   485→}) {
+   486→   486→  return (
+   487→   487→    <span
+   488→   488→      style={{
+   489→   489→        fontSize: `${size}px`,
+   490→   490→        lineHeight: 1.3,
+   491→   491→        color: color || "#475569",
+   492→   492→        fontWeight: weight,
+   493→   493→        fontStyle: italic ? "italic" : "normal",
+   494→   494→        display: "block",
+   495→   495→        overflow: "hidden",
+   496→   496→        whiteSpace: "nowrap",
+   497→   497→        textOverflow: "ellipsis",
+   498→   498→      }}
+   499→   499→    >
+   500→   500→      {children}
+   501→   501→    </span>
+   502→   502→  );
+   503→   503→}
+   504→   504→
+   505→   505→function MiniSectionTitle({ children, color, align = "left" }: {
+   506→   506→  children: React.ReactNode;
+   507→   507→  color: string;
+   508→   508→  align?: "left" | "center";
+   509→   509→}) {
+   510→   510→  return (
+   511→   511→    <div
+   512→   512→      style={{
+   513→   513→        fontSize: "7px",
+   514→   514→        fontWeight: 700,
+   515→   515→        textTransform: "uppercase",
+   516→   516→        letterSpacing: "0.8px",
+   517→   517→        color,
+   518→   518→        borderBottom: `1px solid ${color}40`,
+   519→   519→        paddingBottom: "2px",
+   520→   520→        marginBottom: "4px",
+   521→   521→        marginTop: "8px",
+   522→   522→        textAlign: align,
+   523→   523→      }}
+   524→   524→    >
+   525→   525→      {children}
+   526→   526→    </div>
+   527→   527→  );
+   528→   528→}
+   529→   529→
+   530→   530→function MiniLine({ width = "100%", color = "#cbd5e1" }: { width?: string; color?: string }) {
+   531→   531→  return (
+   532→   532→    <div
+   533→   533→      style={{
+   534→   534→        height: "2px",
+   535→   535→        background: color,
+   536→   536→        borderRadius: "1px",
+   537→   537→        width,
+   538→   538→        marginBottom: "2px",
+   539→   539→      }}
+   540→   540→    />
+   541→   541→  );
+   542→   542→}
+   543→   543→
+   544→   544→function MiniPhoto({ color, size = 22, shape = "circle" }: { color: string; size?: number; shape?: "circle" | "square" | "rounded" }) {
+   545→   545→  const radius = shape === "circle" ? "50%" : shape === "rounded" ? "4px" : "0px";
+   546→   546→  return (
+   547→   547→    <div
+   548→   548→      style={{
+   549→   549→        width: `${size}px`,
+   550→   550→        height: `${size}px`,
+   551→   551→        borderRadius: radius,
+   552→   552→        background: `linear-gradient(135deg, ${color}40, ${color}80)`,
+   553→   553→        border: `1.5px solid ${color}`,
+   554→   554→        flexShrink: 0,
+   555→   555→        display: "flex",
+   556→   556→        alignItems: "center",
+   557→   557→        justifyContent: "center",
+   558→   558→      }}
+   559→   559→    >
+   560→   560→      <div style={{ width: `${size * 0.4}px`, height: `${size * 0.4}px`, borderRadius: "50%", background: `${color}60` }} />
+   561→   561→    </div>
+   562→   562→  );
+   563→   563→}
+   564→   564→
+   565→   565→function MiniExperienceEntry({ accent, role, company, date }: { accent: string; role: string; company: string; date: string }) {
+   566→   566→  return (
+   567→   567→    <div style={{ marginBottom: "5px" }}>
+   568→   568→      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+   569→   569→        <MiniText color={accent} size={6} weight={700}>{role}</MiniText>
+   570→   570→        <MiniText color="#94a3b8" size={5}>{date}</MiniText>
+   571→   571→      </div>
+   572→   572→      <MiniText color="#64748b" size={5} italic>{company}</MiniText>
+   573→   573→      <MiniLine width="90%" />
+   574→   574→      <MiniLine width="75%" />
+   575→   575→    </div>
+   576→   576→  );
+   577→   577→}
+   578→   578→
+   579→   579→function MiniSidebar({ template }: { template: TemplateConfig }) {
+   580→   580→  const accent = template.accent;
+   581→   581→  return (
+   582→   582→    <div
+   583→   583→      style={{
+   584→   584→        display: "flex",
+   585→   585→        flexDirection: "column",
+   586→   586→        gap: "6px",
+   587→   587→      }}
+   588→   588→    >
+   589→   589→      {template.hasPhoto && template.photoPosition === "sidebar-top" && (
+   590→   590→        <div style={{ display: "flex", justifyContent: "center", marginBottom: "2px" }}>
+   591→   591→          <MiniPhoto color={accent} size={20} />
+   592→   592→        </div>
+   593→   593→      )}
+   594→   594→      <div>
+   595→   595→        <MiniSectionTitle color={accent}>Contact</MiniSectionTitle>
+   596→   596→        <MiniText size={5}>alex@email.com</MiniText>
+   597→   597→        <MiniText size={5}>+1 234 567 890</MiniText>
+   598→   598→        <MiniText size={5}>San Francisco</MiniText>
+   599→   599→      </div>
+   600→   600→      <div>
+   601→   601→        <MiniSectionTitle color={accent}>Skills</MiniSectionTitle>
+   602→   602→        <div style={{ display: "flex", flexWrap: "wrap", gap: "2px" }}>
+   603→   603→          {["React", "Node", "AWS", "Python", "SQL"].map((s) => (
+   604→   604→            <span key={s} style={{ fontSize: "5px", padding: "1px 3px", background: `${accent}20`, borderRadius: "2px", color: accent, fontWeight: 600 }}>
+   605→   605→              {s}
+   606→   606→            </span>
+   607→   607→          ))}
+   608→   608→        </div>
+   609→   609→      </div>
+   610→   610→      <div>
+   611→   611→        <MiniSectionTitle color={accent}>Languages</MiniSectionTitle>
+   612→   612→        <MiniText size={5}>English, Spanish</MiniText>
+   613→   613→      </div>
+   614→   614→      <div>
+   615→   615→        <MiniSectionTitle color={accent}>Certifications</MiniSectionTitle>
+   616→   616→        <MiniText size={5} weight={600}>AWS Architect</MiniText>
+   617→   617→        <MiniText size={5} color="#94a3b8">2023</MiniText>
+   618→   618→      </div>
+   619→   619→    </div>
+   620→   620→  );
+   621→   621→}
+   622→   622→
+   623→   623→function MiniMainContent({ template }: { template: TemplateConfig }) {
+   624→   624→  const accent = template.accent;
+   625→   625→  return (
+   626→   626→    <div>
+   627→   627→      <MiniSectionTitle color={accent}>Experience</MiniSectionTitle>
+   628→   628→      <MiniExperienceEntry accent={accent} role="Senior Engineer" company="Google" date="2021-Now" />
+   629→   629→      <MiniExperienceEntry accent={accent} role="Software Engineer" company="Meta" date="2019-21" />
+   630→   630→
+   631→   631→      <MiniSectionTitle color={accent}>Education</MiniSectionTitle>
+   632→   632→      <div style={{ marginBottom: "5px" }}>
+   633→   633→        <div style={{ display: "flex", justifyContent: "space-between" }}>
+   634→   634→          <MiniText color={accent} size={6} weight={700}>B.S. Computer Science</MiniText>
+   635→   635→          <MiniText color="#94a3b8" size={5}>2019</MiniText>
+   636→   636→        </div>
+   637→   637→        <MiniText color="#64748b" size={5} italic>Stanford University</MiniText>
+   638→   638→      </div>
+   639→   639→
+   640→   640→      <MiniSectionTitle color={accent}>Projects</MiniSectionTitle>
+   641→   641→      <MiniText color={accent} size={6} weight={700}>AI Resume Builder</MiniText>
+   642→   642→      <MiniText size={5}>Next.js, TypeScript, OpenAI</MiniText>
+   643→   643→      <MiniLine width="85%" />
+   644→   644→      <MiniLine width="65%" />
+   645→   645→    </div>
+   646→   646→  );
+   647→   647→}
+   648→   648→
+   649→   649→export function TemplateMiniature({ template }: { template: TemplateConfig }) {
+   650→   650→  const accent = template.accent;
+   651→   651→  const accentSec = template.accentSecondary;
+   652→   652→  const textColor = template.textColor;
+   653→   653→  const mutedColor = template.mutedColor;
+   654→   654→  const isSerif = template.fontHeading.includes("serif");
+   655→   655→
+   656→   656→  const headerNameSize = isSerif ? 11 : 12;
+   657→   657→  const headerFontFamily = isSerif ? "Georgia, serif" : "inherit";
+   658→   658→
+   659→   659→  // HEADER BAR layout (executive, professional-blue)
+   660→   660→  if (template.layout === "header-bar") {
+   661→   661→    return (
+   662→   662→      <div style={{ height: "100%", background: "#fff", borderRadius: "6px", overflow: "hidden", fontFamily: template.fontBody }}>
+   663→   663→        <div
+   664→   664→          style={{
+   665→   665→            background: `linear-gradient(135deg, ${accent}, ${accentSec})`,
+   666→   666→            padding: "8px 10px",
+   667→   667→            color: "#fff",
+   668→   668→            display: "flex",
+   669→   669→            justifyContent: "space-between",
+   670→   670→            alignItems: "center",
+   671→   671→          }}
+   672→   672→        >
+   673→   673→          <div>
+   674→   674→            <div style={{ fontSize: `${headerNameSize}px`, fontWeight: 800, fontFamily: headerFontFamily, lineHeight: 1.1 }}>Alex Morgan</div>
+   675→   675→            <div style={{ fontSize: "7px", opacity: 0.85, marginTop: "1px" }}>Senior Software Engineer</div>
+   676→   676→          </div>
+   677→   677→          {template.hasPhoto && (
+   678→   678→            <MiniPhoto color="#fff" size={22} />
+   679→   679→          )}
+   680→   680→        </div>
+   681→   681→        <div style={{ padding: "5px 10px" }}>
+   682→   682→          <div style={{ display: "flex", gap: "6px", fontSize: "5px", color: mutedColor, marginBottom: "3px", flexWrap: "wrap" }}>
+   683→   683→            <span>alex@email.com</span>
+   684→   684→            <span>+1 234 567</span>
+   685→   685→            <span>San Francisco</span>
+   686→   686→          </div>
+   687→   687→          <MiniMainContent template={template} />
+   688→   688→        </div>
+   689→   689→      </div>
+   690→   690→    );
+   691→   691→  }
+   692→   692→
+   693→   693→  // SIDEBAR layout (graphic-designer) - full colored sidebar
+   694→   694→  if (template.layout === "sidebar") {
+   695→   695→    return (
+   696→   696→      <div style={{ height: "100%", display: "flex", background: "#fff", borderRadius: "6px", overflow: "hidden", fontFamily: template.fontBody }}>
+   697→   697→        <div
+   698→   698→          style={{
+   699→   699→            width: "35%",
+   700→   700→            background: `linear-gradient(180deg, ${accent}, ${accentSec})`,
+   701→   701→            color: "#fff",
+   702→   702→            padding: "8px 6px",
+   703→   703→          }}
+   704→   704→        >
+   705→   705→          <div style={{ display: "flex", justifyContent: "center", marginBottom: "6px" }}>
+   706→   706→            <MiniPhoto color="#fff" size={24} />
+   707→   707→          </div>
+   708→   708→          <div style={{ fontSize: "6px", fontWeight: 700, textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.3)", paddingBottom: "2px", marginBottom: "4px", letterSpacing: "0.5px" }}>
+   709→   709→            Contact
+   710→   710→          </div>
+   711→   711→          <div style={{ fontSize: "5px", lineHeight: 1.5, opacity: 0.9 }}>
+   712→   712→            <div>alex@email.com</div>
+   713→   713→            <div>+1 234 567</div>
+   714→   714→            <div>San Francisco</div>
+   715→   715→          </div>
+   716→   716→          <div style={{ fontSize: "6px", fontWeight: 700, textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.3)", paddingBottom: "2px", marginBottom: "4px", marginTop: "6px", letterSpacing: "0.5px" }}>
+   717→   717→            Skills
+   718→   718→          </div>
+   719→   719→          <div style={{ display: "flex", flexWrap: "wrap", gap: "2px" }}>
+   720→   720→            {["React", "Node", "AWS", "Python"].map((s) => (
+   721→   721→              <span key={s} style={{ fontSize: "5px", padding: "1px 3px", background: "rgba(255,255,255,0.2)", borderRadius: "2px" }}>{s}</span>
+   722→   722→            ))}
+   723→   723→          </div>
+   724→   724→          <div style={{ fontSize: "6px", fontWeight: 700, textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.3)", paddingBottom: "2px", marginBottom: "4px", marginTop: "6px", letterSpacing: "0.5px" }}>
+   725→   725→            Languages
+   726→   726→          </div>
+   727→   727→          <div style={{ fontSize: "5px", opacity: 0.9 }}>English, Spanish</div>
+   728→   728→        </div>
+   729→   729→        <div style={{ flex: 1, padding: "8px 7px" }}>
+   730→   730→          <div style={{ fontSize: `${headerNameSize}px`, fontWeight: 800, fontFamily: headerFontFamily, color: textColor, lineHeight: 1.1 }}>Alex Morgan</div>
+   731→   731→          <div style={{ fontSize: "7px", color: accent, fontWeight: 600, marginTop: "1px" }}>Senior Engineer</div>
+   732→   732→          <MiniMainContent template={template} />
+   733→   733→        </div>
+   734→   734→      </div>
+   735→   735→    );
+   736→   736→  }
+   737→   737→
+   738→   738→  // TWO-COLUMN layouts
+   739→   739→  if (template.layout === "two-column-left" || template.layout === "two-column-right") {
+   740→   740→    const isLeft = template.layout === "two-column-left";
+   741→   741→    const sidebar = (
+   742→   742→      <div
+   743→   743→        style={{
+   744→   744→          width: "33%",
+   745→   745→          background: `linear-gradient(180deg, ${accent}12, ${accentSec}08)`,
+   746→   746→          padding: "8px 5px",
+   747→   747→          borderRight: isLeft ? `1.5px solid ${accent}30` : "none",
+   748→   748→          borderLeft: !isLeft ? `1.5px solid ${accent}30` : "none",
+   749→   749→        }}
+   750→   750→      >
+   751→   751→        <MiniSidebar template={template} />
+   752→   752→      </div>
+   753→   753→    );
+   754→   754→    const main = (
+   755→   755→      <div style={{ flex: 1, padding: "8px 7px" }}>
+   756→   756→        <div style={{ fontSize: `${headerNameSize}px`, fontWeight: 800, fontFamily: headerFontFamily, color: textColor, lineHeight: 1.1 }}>Alex Morgan</div>
+   757→   757→        <div style={{ fontSize: "7px", color: accent, fontWeight: 600, marginTop: "1px", marginBottom: "3px" }}>Senior Engineer</div>
+   758→   758→        <MiniMainContent template={template} />
+   759→   759→      </div>
+   760→   760→    );
+   761→   761→    return (
+   762→   762→      <div style={{ height: "100%", display: "flex", background: "#fff", borderRadius: "6px", overflow: "hidden", fontFamily: template.fontBody }}>
+   763→   763→        {isLeft ? (
+   764→   764→          <>
+   765→   765→            {sidebar}
+   766→   766→            {main}
+   767→   767→          </>
+   768→   768→        ) : (
+   769→   769→          <>
+   770→   770→            {main}
+   771→   771→            {sidebar}
+   772→   772→          </>
+   773→   773→        )}
+   774→   774→      </div>
+   775→   775→    );
+   776→   776→  }
+   777→   777→
+   778→   778→  // SINGLE column layout (default)
+   779→   779→  return (
+   780→   780→    <div style={{ height: "100%", background: "#fff", borderRadius: "6px", overflow: "hidden", fontFamily: template.fontBody, padding: "8px 10px" }}>
+   781→   781→      <div
+   782→   782→        style={{
+   783→   783→          display: "flex",
+   784→   784→          justifyContent: "space-between",
+   785→   785→          alignItems: "flex-start",
+   786→   786→          borderBottom: `2px solid ${accent}`,
+   787→   787→          paddingBottom: "5px",
+   788→   788→          marginBottom: "5px",
+   789→   789→        }}
+   790→   790→      >
+   791→   791→        <div>
+   792→   792→          <div style={{ fontSize: `${headerNameSize}px`, fontWeight: 800, fontFamily: headerFontFamily, color: textColor, lineHeight: 1.1, letterSpacing: isSerif ? "0" : "0.5px" }}>
+   793→   793→            Alex Morgan
+   794→   794→          </div>
+   795→   795→          <div style={{ fontSize: "7px", color: accent, fontWeight: 600, marginTop: "1px" }}>
+   796→   796→            Senior Software Engineer
+   797→   797→          </div>
+   798→   798→        </div>
+   799→   799→        {template.hasPhoto && template.photoPosition === "top-right" && (
+   800→   800→          <MiniPhoto color={accent} size={22} />
+   801→   801→        )}
+   802→   802→      </div>
+   803→   803→      <div style={{ display: "flex", gap: "6px", fontSize: "5px", color: mutedColor, marginBottom: "3px", flexWrap: "wrap" }}>
+   804→   804→        <span>alex@email.com</span>
+   805→   805→        <span>+1 234 567</span>
+   806→   806→        <span>San Francisco</span>
+   807→   807→        <span>linkedin.com/in/alex</span>
+   808→   808→      </div>
+   809→   809→      <MiniMainContent template={template} />
+   810→   810→    </div>
+   811→   811→  );
+   812→   812→}
+   813→   813→

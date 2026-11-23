@@ -739,7 +739,7 @@ export function EditableResumeRenderer({
             }}
           />
         </div>
-        {template.hasPhoto && rp.photo && template.photoPosition === "top-right" && (
+        {template.hasPhoto && rp.photo && (
           <PhotoView photo={rp.photo} style={photoStyle} size={90} color={c.divider} />
         )}
       </div>

@@ -10,6 +10,7 @@ import {
   Info,
   CheckCircle2,
   AlertCircle,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useResumeStore, emptyEducation, emptyExperience, emptyProject, emptyCertificate, emptyAchievement } from "@/lib/resume-store";
 import { useToast } from "./toasts";
@@ -44,7 +45,7 @@ function scrollToSection(id: string) {
 }
 
 export default function AiResumeGenerator() {
-  const { setView, setData, setSummary, setObjective } = useResumeStore();
+  const { setView, setData, setSummary, setObjective, data: currentData } = useResumeStore();
   const toast = useToast();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,9 +82,9 @@ export default function AiResumeGenerator() {
   const loadIntoEditor = () => {
     if (!result) return;
     const uid = () => Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
-    // Preserve the photo the user may have uploaded before/while generating,
-    // so AI-generated content does not wipe out the profile picture.
-    const existingPhoto = useResumeStore.getState().data.personal.photo || "";
+    // Preserve any profile photo the user has already uploaded in this session
+    // so the AI-generated resume keeps it when loaded into the editor.
+    const existingPhoto = currentData?.personal?.photo || "";
     const data: ResumeData = {
       personal: {
         name: "",
@@ -178,9 +179,10 @@ export default function AiResumeGenerator() {
           </div>
         </div>
 
+        {/* Optional profile photo upload — small, inline, matches the form builder */}
         <div style={{ marginTop: "20px" }}>
-          <label style={{ fontSize: "13px", color: "var(--nx-ice)", fontWeight: 600, display: "block", marginBottom: "10px" }}>
-            Profile Photo (Optional)
+          <label style={{ fontSize: "13px", color: "var(--nx-ice)", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
+            <ImageIcon size={14} color="var(--nx-cyan)" /> Profile Photo (Optional)
           </label>
           <PhotoUpload />
         </div>

@@ -29,7 +29,7 @@ import {
   AlignCenter,
   AlignRight,
   RefreshCw,
-  Camera,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useResumeStore } from "@/lib/resume-store";
 import { useToast } from "./toasts";
@@ -428,19 +428,15 @@ function PhotoPanel() {
   const template = getTemplate(selectedTemplate);
   return (
     <div className="nx-editor-panel-body">
-      <div style={{ fontSize: "11px", color: "var(--nx-cyan)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>
-        Profile Photo
+      <div style={{ fontSize: "11px", color: "var(--nx-cyan)", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+        <ImageIcon size={12} /> Profile Photo
       </div>
-      {!template.hasPhoto && (
-        <div style={{ fontSize: "11px", color: "rgba(248,253,255,0.5)", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)", padding: "8px 10px", borderRadius: "8px" }}>
-          <Camera size={12} color="#fbbf24" />
-          The current template does not display a photo. Switch templates to show it.
-        </div>
-      )}
       <PhotoUpload />
-      <p style={{ fontSize: "10px", color: "rgba(248,253,255,0.4)", marginTop: "12px" }}>
-        The uploaded photo appears in the live preview and the downloaded PDF for every template that supports photos.
-      </p>
+      {!template.hasPhoto && (
+        <p style={{ fontSize: "10px", color: "rgba(248,253,255,0.4)", marginTop: "8px", lineHeight: 1.5 }}>
+          The selected template (&ldquo;{template.name}&rdquo;) does not include a photo slot by design. The uploaded photo is stored with your resume and will appear on templates that support photos.
+        </p>
+      )}
     </div>
   );
 }
@@ -542,8 +538,8 @@ export default function ResumeEditor() {
     { id: "colors" as const, label: "Colors", icon: Palette },
     { id: "design" as const, label: "Design", icon: Layout },
     { id: "sections" as const, label: "Sections", icon: ListOrdered },
+    { id: "photo" as const, label: "Photo", icon: ImageIcon },
     { id: "ai" as const, label: "AI Improve", icon: Bot },
-    { id: "photo" as const, label: "Photo", icon: Camera },
   ];
 
   return (
@@ -602,8 +598,8 @@ export default function ResumeEditor() {
             {editorPanel === "colors" && <ColorPanel />}
             {editorPanel === "design" && <DesignPanel />}
             {editorPanel === "sections" && <SectionsPanel />}
-            {editorPanel === "ai" && <AiPanel />}
             {editorPanel === "photo" && <PhotoPanel />}
+            {editorPanel === "ai" && <AiPanel />}
           </div>
         </aside>
 

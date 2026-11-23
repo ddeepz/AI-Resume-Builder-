@@ -163,7 +163,7 @@ interface NexusState {
   resetCustomization: () => void;
 
   // Editor panel (which side panel is active)
-  editorPanel: "fonts" | "colors" | "design" | "sections" | "ai" | "photo";
+  editorPanel: "fonts" | "colors" | "design" | "sections" | "photo" | "ai";
   setEditorPanel: (p: NexusState["editorPanel"]) => void;
 
   // Section order for the resume editor
